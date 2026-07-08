@@ -1,0 +1,20 @@
+{
+  "name": "pi-default-tools-sandbox",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Pi extension that runs every built-in/default tool through Anthropic Sandbox Runtime.",
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "scripts": {
+    "clean": "echo 'nothing to clean'",
+    "build": "echo 'nothing to build'",
+    "check": "echo 'nothing to check'"
+  },
+  "dependencies": {
+    "@anthropic-ai/sandbox-runtime": "^0.0.63"
+  }
+}

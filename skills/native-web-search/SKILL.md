@@ -16,15 +16,17 @@ Use this skill to run a **fast model with native web search enabled** and get a 
 Run from this skill directory:
 
 ```bash
-node search.mjs "<what to search>" --purpose "<why you need this>"
+node --use-env-proxy PATH_SKILL_DIR/search.mjs "<what to search>" --purpose "<why you need this>"
 ```
 
 Examples:
 
 ```bash
-node search.mjs "latest python release" --purpose "update dependency notes"
-node search.mjs "vite 7 breaking changes" --purpose "prepare migration checklist"
+node --use-env-proxy PATH_SKILL_DIR/search.mjs "latest python release" --purpose "update dependency notes"
+node --use-env-proxy PATH_SKILL_DIR/search.mjs "vite 7 breaking changes" --purpose "prepare migration checklist"
 ```
+
+Always invoke `search.mjs` with `NODE_OPTIONS=--use-env-proxy`
 
 Optional flags:
 
