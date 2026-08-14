@@ -220,25 +220,35 @@ export class CollaborationRegistry<TMonitor = unknown> {
     const activeTurnId = this.createId();
     this.slots.reserve(activeTurnId);
 
-    const record: ChildRecord<TMonitor> = {
-      id: childId,
-      taskName: input.task_name,
-      canonicalPath: `/root/${input.task_name}`,
-      parentPath: "/root",
-      sessionFile: "",
-      status: "pending_init",
-      workerPhase: "starting",
-      workerGeneration: 0,
-      activeTurnId,
-      createdAt: this.now(),
-      queuedMessages: [],
-      monitor: this.deps.createMonitor(),
-      lifecycle: new AsyncSerialQueue(),
-      finalizedTurnIds: new Set(),
-      lastActivity: "initializing",
-    };
-    this.addRecord(record);
-    this.changed(record);
+    const record = (() => {
+      let candidate: ChildRecord<TMonitor> | undefined;
+      try {
+        candidate = {
+          id: childId,
+          taskName: input.task_name,
+          canonicalPath: `/root/${input.task_name}`,
+          parentPath: "/root",
+          sessionFile: "",
+          status: "pending_init",
+          workerPhase: "starting",
+          workerGeneration: 0,
+          activeTurnId,
+          createdAt: this.now(),
+          queuedMessages: [],
+          monitor: this.deps.createMonitor(),
+          lifecycle: new AsyncSerialQueue(),
+          finalizedTurnIds: new Set(),
+          lastActivity: "initializing",
+        };
+        this.addRecord(candidate);
+        this.changed(candidate);
+        return candidate;
+      } catch (error) {
+        if (candidate) this.removeRecord(candidate);
+        this.slots.release(activeTurnId);
+        throw error;
+      }
+    })();
 
     return record.lifecycle.run(async () => {
       try {

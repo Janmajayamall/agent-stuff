@@ -759,6 +759,35 @@ describe("RpcChildWorker protocol", () => {
 		expect(child.stdinEnded).toBe(true);
 	});
 
+	it("treats malformed JSONL as fatal, rejects pending commands, and terminates boundedly", async () => {
+		const child = new FakeRpcChild(false, "SIGTERM");
+		const protocolError = vi.fn();
+		const unexpectedExit = vi.fn();
+		const worker = makeWorker(child, {
+			autoCloseOnSettled: false,
+			onProtocolError: protocolError,
+			onUnexpectedExit: unexpectedExit,
+		});
+		const state = worker.getState();
+		await waitForCommand(child, 0);
+
+		child.stdout.write("{not valid JSON}\n");
+
+		await expect(state).rejects.toThrow(/Invalid RPC JSONL record/);
+		await expect(worker.closed).resolves.toMatchObject({
+			expected: true,
+			settled: false,
+			forced: true,
+			signal: "SIGTERM",
+		});
+		expect(protocolError).toHaveBeenCalledTimes(1);
+		expect(protocolError.mock.calls[0]?.[0]).toEqual(
+			expect.objectContaining({ message: expect.stringMatching(/Invalid RPC JSONL record/) }),
+		);
+		expect(child.signals).toEqual(["SIGTERM"]);
+		expect(unexpectedExit).not.toHaveBeenCalled();
+	});
+
 	it("rejects pending commands and reports tokenized bounded stderr on unexpected exit", async () => {
 		const child = new FakeRpcChild(false);
 		const unexpected = vi.fn();

@@ -110,6 +110,16 @@ describe("CollaborationRegistry target and capacity rules", () => {
 });
 
 describe("CollaborationRegistry start and settlement lifecycle", () => {
+  it("releases capacity when monitor construction fails before startup", async () => {
+    const harness = createHarness({ monitorError: new Error("monitor construction failed") });
+
+    await expect(harness.registry.spawn(spawnInput("monitor_failure"))).rejects.toThrow(
+      "monitor construction failed",
+    );
+    expect(harness.registry.children()).toEqual([]);
+    expect(harness.registry.activeTurnCount).toBe(0);
+  });
+
   it("does not resolve spawn until worker state and prompt readiness complete", async () => {
     const promptGate = deferred<void>();
     const harness = createHarness({ workerPlans: [{ promptGate }] });
@@ -317,6 +327,20 @@ describe("CollaborationRegistry start and settlement lifecycle", () => {
     expect(harness.registry.activeTurnCount).toBe(0);
     expect(harness.removedSessions).toEqual(["/sessions/id-1.jsonl"]);
     expect(harness.workers[0]!.shutdownCalls).toBe(1);
+  });
+
+  it("rolls back a non-reloadable runtime capability failure before allocating a session", async () => {
+    const harness = createHarness({
+      snapshotError: new Error("SDK/in-memory tool closures cannot cross the subprocess boundary"),
+    });
+
+    await expect(harness.registry.spawn(spawnInput("sdk_only"))).rejects.toThrow(
+      /SDK\/in-memory tool closures cannot cross/,
+    );
+    expect(harness.registry.children()).toEqual([]);
+    expect(harness.registry.activeTurnCount).toBe(0);
+    expect(harness.allocationCalls).toEqual([]);
+    expect(harness.workers).toEqual([]);
   });
 
   it("restores an inactive child after restart preflight failure without a false terminal mailbox", async () => {
@@ -1053,6 +1077,7 @@ class FakeWorker {
 interface HarnessOptions {
   ids?: string[];
   workerPlans?: FakeWorkerPlan[];
+  monitorError?: Error;
   snapshotError?: Error;
   allocationError?: Error;
   allocationGate?: Deferred<void>;
@@ -1127,6 +1152,7 @@ function createHarness(options: HarnessOptions = {}) {
       return worker as unknown as RpcChildWorker;
     },
     createMonitor() {
+      if (options.monitorError) throw options.monitorError;
       const monitor: SanitizedRpcEvent[] = [];
       monitors.push(monitor);
       return monitor;

@@ -107,6 +107,7 @@ describe("collaboration input contracts", () => {
     expect(() => prepareInterruptAgentArguments({ target: null })).toThrow(/JSON string/);
     expect(() => prepareListAgentsArguments({ path_prefix: 1 })).toThrow(/JSON string/);
     expect(() => prepareWaitAgentArguments({ timeout_ms: "10000" })).toThrow(/JSON number/);
+    expect(() => prepareWaitAgentArguments({ timeout_ms: 10_000.5 })).toThrow(/integer/);
     expect(() => prepareWaitAgentArguments([])).toThrow(/plain, non-array object/);
     expect(() => prepareWaitAgentArguments(null)).toThrow(/plain, non-array object/);
   });
@@ -123,6 +124,19 @@ describe("collaboration input contracts", () => {
 
     // This demonstrates the coercion the raw hook is specifically preventing.
     const convertedWithoutPrepare = structuredClone({ timeout_ms: "10000" });
+    Value.Convert(WaitAgentInputSchema, convertedWithoutPrepare);
+    expect(convertedWithoutPrepare).toEqual({ timeout_ms: 10_000 });
+    expect(Value.Check(WaitAgentInputSchema, convertedWithoutPrepare)).toBe(true);
+  });
+
+  it("blocks fractional timeout_ms before Pi's integer conversion truncates it", async () => {
+    const invalid = await runThroughPiToolPipeline({ timeout_ms: 10_000.5 });
+    expect(invalid.execute).not.toHaveBeenCalled();
+    expect(invalid.error).toContain("integer");
+
+    // Pi's conversion turns the invalid JSON number into a valid integer, so
+    // this constraint must be enforced by prepareArguments on the raw value.
+    const convertedWithoutPrepare = structuredClone({ timeout_ms: 10_000.5 });
     Value.Convert(WaitAgentInputSchema, convertedWithoutPrepare);
     expect(convertedWithoutPrepare).toEqual({ timeout_ms: 10_000 });
     expect(Value.Check(WaitAgentInputSchema, convertedWithoutPrepare)).toBe(true);

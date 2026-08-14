@@ -185,6 +185,9 @@ describe("collaboration tool registration", () => {
 			message: "Run",
 			fork_turns: "all",
 		})).toThrow(/unknown property "fork_turns"/);
+		expect(() => byName(tools, "collaboration_wait_agent").prepareArguments?.({
+			timeout_ms: 10_000.5,
+		})).toThrow(/JSON integer/);
 	});
 
 	it("lets Pi schema validation reject invalid-but-correctly-typed arguments before execute", async () => {

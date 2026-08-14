@@ -105,7 +105,7 @@ export type InterruptAgentInput = Static<typeof InterruptAgentInputSchema>;
 export type ListAgentsInput = Static<typeof ListAgentsInputSchema>;
 export type WaitAgentInput = Static<typeof WaitAgentInputSchema>;
 
-type RawPrimitiveKind = "number" | "string";
+type RawValueKind = "integer" | "number" | "string";
 
 export class CollaborationSchemaError extends Error {
   override readonly name = "CollaborationSchemaError";
@@ -122,7 +122,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 function createRawArgumentsPreparer<T extends object>(
   toolName: CollaborationToolName,
-  properties: Readonly<Record<string, RawPrimitiveKind>>,
+  properties: Readonly<Record<string, RawValueKind>>,
 ): (raw: unknown) => T {
   const allowedKeys = new Set(Object.keys(properties));
 
@@ -148,16 +148,23 @@ function createRawArgumentsPreparer<T extends object>(
 
       const expectedType = properties[key]!;
       const actualType = typeof raw[key];
-      if (actualType !== expectedType) {
+      const expectedPrimitiveType = expectedType === "integer" ? "number" : expectedType;
+      if (actualType !== expectedPrimitiveType) {
         throw new CollaborationSchemaError(
-          `Schema error for ${toolName}: property ${JSON.stringify(key)} must be a JSON ${expectedType}, received ${actualType}`,
+          `Schema error for ${toolName}: property ${JSON.stringify(key)} must be a JSON ${expectedPrimitiveType}, received ${actualType}`,
+        );
+      }
+      if (expectedType === "integer" && !Number.isSafeInteger(raw[key])) {
+        throw new CollaborationSchemaError(
+          `Schema error for ${toolName}: property ${JSON.stringify(key)} must be a JSON integer`,
         );
       }
     }
 
     // Pi subsequently clones this value, runs Value.Convert(), and validates it
     // against the TypeBox schema. Returning the original object here is
-    // intentional: this hook only protects the original JSON primitive types.
+    // intentional: this hook protects constraints that Value.Convert could
+    // otherwise erase before schema validation.
     return raw as T;
   };
 }
@@ -205,7 +212,10 @@ export const prepareListAgentsArguments = createRawArgumentsPreparer<ListAgentsI
 export const prepareWaitAgentArguments = createRawArgumentsPreparer<WaitAgentInput>(
   "collaboration_wait_agent",
   {
-    timeout_ms: "number",
+    // Pi applies TypeBox Value.Convert after this hook. Type.Integer conversion
+    // truncates a fractional number, so enforce integrality on the untouched
+    // provider arguments before conversion can make the value schema-valid.
+    timeout_ms: "integer",
   },
 );
 
