@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve as resolvePath } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   SandboxManager,
   type SandboxRuntimeConfig,
@@ -20,6 +21,7 @@ import {
   createReadTool,
   createWriteTool,
   getAgentDir,
+  getPackageDir,
   type AgentToolResult,
   type BashOperations,
   type ExtensionAPI,
@@ -65,8 +67,9 @@ const WORKER_TOOLS = [
   "grep",
 ] as const satisfies WorkerToolName[];
 
-const PI_CODING_AGENT_IMPORT_URL = import.meta
-  .resolve("@earendil-works/pi-coding-agent");
+const PI_CODING_AGENT_IMPORT_URL = pathToFileURL(
+  join(getPackageDir(), "dist", "index.js"),
+).href;
 
 const BUILTIN_TOOL_RUNNER_SCRIPT = `
 import {
