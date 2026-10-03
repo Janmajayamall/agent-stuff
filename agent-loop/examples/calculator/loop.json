@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "name": "cli-calculator",
+  "agents": {
+    "implementer": {
+      "id": "astra-implementer",
+      "harness": "codex",
+      "model": { "id": "gpt-6-astra" },
+      "args": ["-c", "model_reasoning_effort=\"xhigh\""],
+      "instructions": {
+        "implement": { "file": "prompts/implement.md" },
+        "revise": { "file": "prompts/revise.md" }
+      }
+    },
+    "reviewers": [
+      {
+        "id": "opus-reviewer",
+        "harness": "claude",
+        "model": { "id": "claude-opus-5" },
+        "args": [
+          "--effort", "xhigh",
+          "--allowedTools", "Read,Grep,Glob,Bash,Write"
+        ],
+        "instructions": { "file": "prompts/review.md" }
+      },
+      {
+        "id": "astra-reviewer",
+        "harness": "codex",
+        "model": { "id": "gpt-6-astra" },
+        "args": ["-c", "model_reasoning_effort=\"xhigh\""],
+        "instructions": { "file": "prompts/review.md" }
+      }
+    ]
+  },
+  "parallelReviews": true,
+  "limits": { "maxRounds": 5 },
+  "runsDirectory": ".agent-loop/runs",
+  "checks": [
+    {
+      "id": "calculator-tests",
+      "command": ["node", "--test", "tests/calculator.test.mjs"]
+    }
+  ]
+}

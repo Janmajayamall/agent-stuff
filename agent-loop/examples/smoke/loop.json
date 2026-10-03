@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "name": "normalize-tags-smoke",
+  "agents": {
+    "implementer": {
+      "id": "implementer",
+      "harness": "codex",
+      "instructions": {
+        "implement": { "file": "prompts/implement.md" },
+        "revise": { "file": "prompts/revise.md" }
+      }
+    },
+    "reviewers": [
+      {
+        "id": "correctness",
+        "harness": "codex",
+        "instructions": { "file": "prompts/review.md" }
+      },
+      {
+        "id": "edge-cases",
+        "harness": "codex",
+        "instructions": { "file": "prompts/review.md" }
+      }
+    ]
+  },
+  "parallelReviews": true,
+  "limits": { "maxRounds": 3 },
+  "runsDirectory": ".agent-loop/runs",
+  "checks": [
+    { "id": "unit", "command": ["python3", "-m", "unittest", "-v"] }
+  ]
+}

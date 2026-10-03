@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+"""Local CLI entry point; all input paths use the invocation directory."""
+
+from agentloop.runner import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

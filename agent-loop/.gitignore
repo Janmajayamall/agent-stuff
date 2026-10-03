@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.agent-loop/runs/
+.agent-loop/smoke-workspaces/
+.agent-loop/latest-smoke.txt
+.agent-loop/workspace.lock
+*.egg-info/
+build/
+dist/

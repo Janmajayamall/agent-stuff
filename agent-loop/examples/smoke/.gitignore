@@ -1,0 +1,3 @@
+.agent-loop/
+__pycache__/
+*.pyc
